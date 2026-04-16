@@ -2,39 +2,61 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>HandDraw Pro X</title>
 
 <style>
-* { box-sizing: border-box; }
+* { 
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
 
 body {
-    margin: 0;
     overflow: hidden;
     font-family: 'Segoe UI', sans-serif;
-    background: radial-gradient(circle at top, #1e293b, #020617);
+    background: #020617;
     color: white;
+    width: 100vw;
+    height: 100vh;
+}
+
+#videoContainer {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
 }
 
 video {
     position: absolute;
-    top: 0;
-    left: 0;
-    transform: scaleX(-1);
-    opacity: 0.2;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scaleX(-1);
+    min-width: 100%;
+    min-height: 100%;
+    width: auto;
+    height: auto;
+    opacity: 0.3;
+    filter: brightness(1) contrast(1);
 }
 
 canvas {
-    position: absolute;
+    position: fixed;
     top: 0;
     left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
 }
 
-/* UI PANEL */
 .panel {
     position: fixed;
     top: 20px;
     left: 20px;
-    background: rgba(15, 23, 42, 0.7);
+    background: rgba(15, 23, 42, 0.85);
     backdrop-filter: blur(15px);
     padding: 15px;
     border-radius: 15px;
@@ -42,6 +64,7 @@ canvas {
     gap: 10px;
     align-items: center;
     box-shadow: 0 0 25px rgba(0,0,0,0.5);
+    z-index: 1000;
 }
 
 button {
@@ -52,10 +75,15 @@ button {
     color: white;
     cursor: pointer;
     transition: 0.2s;
+    font-size: 14px;
 }
 
 button:hover {
     transform: scale(1.05);
+}
+
+button:active {
+    transform: scale(0.95);
 }
 
 input[type=color] {
@@ -63,6 +91,7 @@ input[type=color] {
     height: 40px;
     border: none;
     cursor: pointer;
+    border-radius: 8px;
 }
 
 .slider {
@@ -75,23 +104,45 @@ input[type=color] {
     left: 20px;
     opacity: 0.6;
     font-size: 14px;
+    z-index: 1000;
+}
+
+.status {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: rgba(15, 23, 42, 0.85);
+    backdrop-filter: blur(15px);
+    padding: 10px 15px;
+    border-radius: 10px;
+    font-size: 12px;
+    z-index: 1000;
+}
+
+.status.drawing {
+    background: rgba(34, 197, 94, 0.3);
+    border: 2px solid #22c55e;
 }
 </style>
 </head>
 
 <body>
 
-<video id="video" autoplay playsinline></video>
+<div id="videoContainer">
+    <video id="video" autoplay playsinline muted></video>
+</div>
+
 <canvas id="canvas"></canvas>
 
 <div class="panel">
     <button onclick="clearCanvas()">🧹 Очистить</button>
     <input type="color" id="color" value="#00f5ff">
-    <input type="range" min="1" max="20" value="5" id="size" class="slider">
+    <input type="range" min="2" max="25" value="8" id="size" class="slider" title="Размер кисти">
     <button onclick="toggleNeon()">✨ Неон</button>
 </div>
 
-<div class="title">HandDraw Pro X — управление рукой ✋</div>
+<div class="status" id="status">Ожидание руки...</div>
+<div class="title">HandDraw Pro X — сведи указательный и средний пальцы для рисования ✋</div>
 
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
@@ -100,13 +151,21 @@ input[type=color] {
 const video = document.getElementById('video');
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
+const status = document.getElementById('status');
 
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
+// Устанавливаем размер canvas на весь экран
+function resizeCanvas() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+}
+
+resizeCanvas();
+window.addEventListener('resize', resizeCanvas);
 
 let lastX = null;
 let lastY = null;
 let neon = false;
+let isDrawing = false;
 
 function clearCanvas() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -116,7 +175,7 @@ function toggleNeon() {
     neon = !neon;
 }
 
-// HANDS
+// Инициализация MediaPipe Hands
 const hands = new Hands({
     locateFile: file => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
 });
@@ -124,54 +183,61 @@ const hands = new Hands({
 hands.setOptions({
     maxNumHands: 1,
     modelComplexity: 1,
-    minDetectionConfidence: 0.7,
-    minTrackingConfidence: 0.7
+    minDetectionConfidence: 0.8,
+    minTrackingConfidence: 0.8
 });
 
 hands.onResults(results => {
     if (!results.multiHandLandmarks || results.multiHandLandmarks.length === 0) {
         lastX = lastY = null;
+        isDrawing = false;
+        status.textContent = "Ожидание руки...";
+        status.classList.remove('drawing');
         return;
     }
 
-    const lm = results.multiHandLandmarks[0];
+    const landmarks = results.multiHandLandmarks[0];
 
-    // Указательный палец (Index finger tip)
-    const index = lm[8];
-    // Средний палец (Middle finger tip)
-    const middle = lm[12];
+    // Указательный палец (кончик)
+    const indexTip = landmarks[8];
+    // Средний палец (кончик)
+    const middleTip = landmarks[12];
 
-    // Координаты для рисования (инвертируем X, так как видео отзеркалено)
-    const x = (1 - index.x) * canvas.width;
-    const y = index.y * canvas.height;
+    // Преобразуем координаты в координаты canvas
+    const x = indexTip.x * canvas.width;
+    const y = indexTip.y * canvas.height;
 
-    // Считаем расстояние между кончиками пальцев по X, Y и Z
-    const dist = Math.sqrt(
-        Math.pow(index.x - middle.x, 2) + 
-        Math.pow(index.y - middle.y, 2) +
-        Math.pow(index.z - middle.z, 2)
+    // Вычисляем расстояние между кончиками пальцев
+    const distance = Math.sqrt(
+        Math.pow((indexTip.x - middleTip.x) * canvas.width, 2) +
+        Math.pow((indexTip.y - middleTip.y) * canvas.height, 2)
     );
 
-    // Увеличили порог до 0.07 для лучшего срабатывания
-    const drawing = dist < 0.07;
+    // Если пальцы близко - рисуем (порог ~ 30-50 пикселей)
+    const drawingThreshold = 50;
+    const shouldDraw = distance < drawingThreshold;
 
-    if (drawing) {
+    if (shouldDraw) {
+        isDrawing = true;
+        status.textContent = "✏️ Рисование...";
+        status.classList.add('drawing');
+
         const color = document.getElementById('color').value;
-        const size = document.getElementById('size').value;
+        const size = parseInt(document.getElementById('size').value);
 
         ctx.strokeStyle = color;
         ctx.lineWidth = size;
         ctx.lineCap = "round";
-        ctx.lineJoin = "round"; // Делает линии более гладкими
+        ctx.lineJoin = "round";
 
         if (neon) {
-            ctx.shadowBlur = 15;
+            ctx.shadowBlur = 20;
             ctx.shadowColor = color;
         } else {
             ctx.shadowBlur = 0;
         }
 
-        if (lastX !== null) {
+        if (lastX !== null && lastY !== null) {
             ctx.beginPath();
             ctx.moveTo(lastX, lastY);
             ctx.lineTo(x, y);
@@ -181,26 +247,41 @@ hands.onResults(results => {
         lastX = x;
         lastY = y;
     } else {
+        if (isDrawing) {
+            isDrawing = false;
+            status.textContent = "✋ Рука обнаружена";
+            status.classList.remove('drawing');
+        }
         lastX = lastY = null;
     }
 });
-// CAMERA
-navigator.mediaDevices.getUserMedia({ video: true })
+
+// Запуск камеры с правильными настройками
+navigator.mediaDevices.getUserMedia({ 
+    video: {
+        width: { ideal: 1280 },
+        height: { ideal: 720 },
+        facingMode: 'user'
+    } 
+})
 .then(stream => {
     video.srcObject = stream;
-
-    const camera = new Camera(video, {
-        onFrame: async () => {
-            await hands.send({ image: video });
-        },
-        width: 640,
-        height: 480
-    });
-
-    camera.start();
+    
+    video.onloadedmetadata = () => {
+        const camera = new Camera(video, {
+            onFrame: async () => {
+                await hands.send({ image: video });
+            },
+            width: 1280,
+            height: 720
+        });
+        
+        camera.start();
+    };
 })
-.catch(() => {
-    alert("Камера не работает — проверь доступ или открой через GitHub Pages");
+.catch(err => {
+    console.error("Ошибка камеры:", err);
+    alert("⚠️ Не удалось получить доступ к камере.\n\nПроверь:\n1. Разрешение на камеру в браузере\n2. Открыт ли файл через HTTPS или локальный сервер\n3. Камера не используется другим приложением");
 });
 </script>
 
