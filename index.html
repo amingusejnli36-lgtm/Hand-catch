@@ -129,22 +129,31 @@ hands.setOptions({
 });
 
 hands.onResults(results => {
-    if (!results.multiHandLandmarks) {
+    if (!results.multiHandLandmarks || results.multiHandLandmarks.length === 0) {
         lastX = lastY = null;
         return;
     }
 
     const lm = results.multiHandLandmarks[0];
 
+    // Указательный палец (Index finger tip)
     const index = lm[8];
+    // Средний палец (Middle finger tip)
     const middle = lm[12];
 
-    const x = index.x * canvas.width;
+    // Координаты для рисования (инвертируем X, так как видео отзеркалено)
+    const x = (1 - index.x) * canvas.width;
     const y = index.y * canvas.height;
 
-    const dist = Math.hypot(index.x - middle.x, index.y - middle.y);
+    // Считаем расстояние между кончиками пальцев по X, Y и Z
+    const dist = Math.sqrt(
+        Math.pow(index.x - middle.x, 2) + 
+        Math.pow(index.y - middle.y, 2) +
+        Math.pow(index.z - middle.z, 2)
+    );
 
-    const drawing = dist < 0.05;
+    // Увеличили порог до 0.07 для лучшего срабатывания
+    const drawing = dist < 0.07;
 
     if (drawing) {
         const color = document.getElementById('color').value;
@@ -153,9 +162,10 @@ hands.onResults(results => {
         ctx.strokeStyle = color;
         ctx.lineWidth = size;
         ctx.lineCap = "round";
+        ctx.lineJoin = "round"; // Делает линии более гладкими
 
         if (neon) {
-            ctx.shadowBlur = 25;
+            ctx.shadowBlur = 15;
             ctx.shadowColor = color;
         } else {
             ctx.shadowBlur = 0;
@@ -174,7 +184,6 @@ hands.onResults(results => {
         lastX = lastY = null;
     }
 });
-
 // CAMERA
 navigator.mediaDevices.getUserMedia({ video: true })
 .then(stream => {
