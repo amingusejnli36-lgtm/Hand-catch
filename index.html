@@ -1,506 +1,149 @@
 <!DOCTYPE html>
-<html lang="ru">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>HandDraw Pro X</title>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta
+      name="description"
+      content="KIRIGO: a fictional, entertainment-only wish journaling experience. Inspired by storytelling. Safe and playful."
+    />
+    <title>KIRIGO</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <a href="#main-app" class="skip-link">Skip to main interface</a>
 
-<style>
-* { 
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-}
+    <div id="splash" class="splash" role="region" aria-label="Introduction">
+      <div class="splash-bg" aria-hidden="true"></div>
+      <div class="splash-vignette" aria-hidden="true"></div>
 
-body {
-    overflow: hidden;
-    font-family: 'Segoe UI', sans-serif;
-    background: #020617;
-    color: white;
-    width: 100vw;
-    height: 100vh;
-}
+      <div class="splash-hands" aria-hidden="true">
+        <svg class="hands-svg" viewBox="0 0 400 340" xmlns="http://www.w3.org/2000/svg" fill="none">
+          <defs>
+            <linearGradient id="handGrad" x1="200" y1="80" x2="200" y2="340" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#1e2230" />
+              <stop offset="1" stop-color="#0b0d12" />
+            </linearGradient>
+            <filter id="softGlow" x="-20%" y="-20%" width="140%" height="140%">
+              <feGaussianBlur stdDeviation="6" result="b" />
+              <feMerge>
+                <feMergeNode in="b" />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
+          </defs>
+          <g class="hand-left" fill="url(#handGrad)" filter="url(#softGlow)" opacity="0.92">
+            <path
+              d="M48 298c22-118 76-206 142-266 14-11 41-36 74-31 41 13 62 71 74 134 45 238-118 378-278 378-54 0-12-215-12-215z"
+            />
+          </g>
+          <g class="hand-right" fill="url(#handGrad)" filter="url(#softGlow)" opacity="0.92">
+            <path
+              d="M352 298c-22-118-76-206-142-266-14-11-41-36-74-31-41 13-62 71-74 134-45 238 118 378 278 378 54 0 12-215 12-215z"
+            />
+          </g>
+          <ellipse class="splash-glow" cx="200" cy="278" rx="90" ry="38" fill="rgba(120,160,210,0.12)" />
+        </svg>
+      </div>
 
-#videoContainer {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    overflow: hidden;
-}
-
-video {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%) scaleX(-1);
-    min-width: 100%;
-    min-height: 100%;
-    width: auto;
-    height: auto;
-    opacity: 0.3;
-    filter: brightness(1) contrast(1);
-}
-
-canvas {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    pointer-events: none;
-}
-
-.panel {
-    position: fixed;
-    top: 20px;
-    left: 20px;
-    background: rgba(15, 23, 42, 0.85);
-    backdrop-filter: blur(15px);
-    padding: 15px;
-    border-radius: 15px;
-    display: flex;
-    gap: 10px;
-    align-items: center;
-    box-shadow: 0 0 25px rgba(0,0,0,0.5);
-    z-index: 1000;
-}
-
-button {
-    background: linear-gradient(135deg, #3b82f6, #06b6d4);
-    border: none;
-    padding: 10px 14px;
-    border-radius: 10px;
-    color: white;
-    cursor: pointer;
-    transition: 0.2s;
-    font-size: 14px;
-}
-
-button:hover {
-    transform: scale(1.05);
-}
-
-button:active {
-    transform: scale(0.95);
-}
-
-input[type=color] {
-    width: 40px;
-    height: 40px;
-    border: none;
-    cursor: pointer;
-    border-radius: 8px;
-}
-
-.slider {
-    width: 100px;
-}
-
-.title {
-    position: fixed;
-    bottom: 20px;
-    left: 20px;
-    opacity: 0.6;
-    font-size: 14px;
-    z-index: 1000;
-}
-
-.status {
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    background: rgba(15, 23, 42, 0.85);
-    backdrop-filter: blur(15px);
-    padding: 10px 15px;
-    border-radius: 10px;
-    font-size: 12px;
-    z-index: 1000;
-    transition: 0.3s;
-}
-
-.status.drawing {
-    background: rgba(34, 197, 94, 0.3);
-    border: 2px solid #22c55e;
-}
-
-/* Визуализация точки рисования */
-.draw-cursor {
-    position: fixed;
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    border: 2px solid rgba(255, 255, 255, 0.8);
-    pointer-events: none;
-    z-index: 999;
-    transform: translate(-50%, -50%);
-    transition: opacity 0.2s;
-    opacity: 0;
-}
-
-.draw-cursor.visible {
-    opacity: 1;
-}
-
-.draw-cursor.active {
-    background: rgba(34, 197, 94, 0.5);
-    border-color: #22c55e;
-    box-shadow: 0 0 15px rgba(34, 197, 94, 0.5);
-}
-
-/* Индикатор расстояния между пальцами */
-.pinch-indicator {
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    background: rgba(15, 23, 42, 0.85);
-    backdrop-filter: blur(15px);
-    padding: 10px 15px;
-    border-radius: 10px;
-    font-size: 12px;
-    z-index: 1000;
-}
-
-.pinch-bar {
-    width: 120px;
-    height: 6px;
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 3px;
-    margin-top: 6px;
-    overflow: hidden;
-}
-
-.pinch-bar-fill {
-    height: 100%;
-    border-radius: 3px;
-    transition: width 0.1s, background 0.2s;
-    background: #3b82f6;
-}
-</style>
-</head>
-
-<body>
-
-<div id="videoContainer">
-    <video id="video" autoplay playsinline muted></video>
-</div>
-
-<canvas id="canvas"></canvas>
-
-<!-- Курсор рисования (следит за пальцем) -->
-<div class="draw-cursor" id="drawCursor"></div>
-
-<div class="panel">
-    <button onclick="clearCanvas()">🧹 Очистить</button>
-    <input type="color" id="color" value="#00f5ff">
-    <input type="range" min="2" max="25" value="8" id="size" class="slider" title="Размер кисти">
-    <button onclick="toggleNeon()">✨ Неон</button>
-    <button onclick="undoLast()">↩️ Отмена</button>
-</div>
-
-<div class="status" id="status">Ожидание руки...</div>
-
-<!-- Индикатор щипка -->
-<div class="pinch-indicator" id="pinchIndicator">
-    <span id="pinchText">Расстояние: ---</span>
-    <div class="pinch-bar">
-        <div class="pinch-bar-fill" id="pinchBarFill" style="width: 0%"></div>
+      <div class="splash-content">
+        <p class="splash-tagline">Fictional entertainment only. No harm encouraged.</p>
+        <h1 class="splash-title" lang="ko">키리고</h1>
+        <p class="splash-caption">Speak a playful wish.</p>
+        <button type="button" id="splash-enter" class="btn-enter">Continue</button>
+      </div>
     </div>
-</div>
 
-<div class="title">HandDraw Pro X — сожми большой и указательный палец для рисования 👌</div>
+    <div id="main-app" class="main-app hidden" tabindex="-1">
+      <header class="app-bar">
+        <h2 class="app-title" lang="ko">키리고</h2>
+        <p class="app-subtle">Wish capture (simulated upload, local playback)</p>
+      </header>
 
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+      <section class="recorder-shell" aria-labelledby="rec-heading">
+        <div class="visually-hidden" id="rec-heading">Wish recorder</div>
 
-<script>
-const video = document.getElementById('video');
-const canvas = document.getElementById('canvas');
-const ctx = canvas.getContext('2d');
-const statusEl = document.getElementById('status');
-const drawCursor = document.getElementById('drawCursor');
-const pinchText = document.getElementById('pinchText');
-const pinchBarFill = document.getElementById('pinchBarFill');
+        <div id="banner-error" class="banner banner-error hidden" role="alert"></div>
+        <div id="banner-soft" class="banner banner-soft hidden" role="status"></div>
 
-// ============================================
-// НАСТРОЙКИ
-// ============================================
-const PINCH_THRESHOLD = 45;      // пикселей — порог для начала рисования
-const SMOOTHING = 0.35;          // сглаживание движения (0 = нет, 1 = максимум)
+        <div class="recorder-stage">
+          <div class="recorder-ring-wrap">
+            <div class="recorder-ring" id="ring-outer">
+              <div class="recorder-hole">
+                <video
+                  id="preview-live"
+                  class="preview-live"
+                  muted
+                  playsinline
+                  autoplay
+                  aria-label="Live camera preview"
+                ></video>
+                <video
+                  id="preview-playback"
+                  class="preview-playback hidden"
+                  controls
+                  playsinline
+                  aria-label="Recorded wish playback"
+                ></video>
+                <div id="preview-placeholder" class="preview-placeholder" aria-hidden="true">
+                  <span>Camera preview appears here.</span>
+                </div>
 
-// ============================================
-// CANVAS
-// ============================================
-function resizeCanvas() {
-    // Сохраняем текущий рисунок
-    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-    
-    // Восстанавливаем рисунок (если размеры совпадают)
-    try {
-        ctx.putImageData(imageData, 0, 0);
-    } catch(e) {}
-}
+                <div id="recording-pulse" class="recording-pulse hidden" aria-live="polite">
+                  <span class="recording-dot" aria-hidden="true"></span>
+                  <span class="recording-label">Recording</span>
+                </div>
+              </div>
+            </div>
+          </div>
 
-resizeCanvas();
-window.addEventListener('resize', resizeCanvas);
+          <p class="timer" id="timer" aria-live="polite">00:00 / 0:50</p>
+          <p class="instruction" id="rec-instruction">Press and hold the button to record.</p>
 
-// ============================================
-// СОСТОЯНИЕ РИСОВАНИЯ
-// ============================================
-let lastX = null;
-let lastY = null;
-let smoothX = null;
-let smoothY = null;
-let neon = false;
-let isDrawing = false;
+          <div class="controls-row">
+            <button
+              type="button"
+              id="record-button"
+              class="record-btn"
+              aria-pressed="false"
+              aria-label="Hold to record wish video. Maximum fifty seconds."
+            >
+              <span class="record-btn-inner"></span>
+            </button>
+          </div>
 
-// История для отмены
-let history = [];
-const MAX_HISTORY = 20;
+          <div class="post-actions hidden" id="post-actions">
+            <button type="button" id="btn-discard" class="btn-secondary">Discard</button>
+            <button type="button" id="btn-upload" class="btn-primary">Send to gallery</button>
+          </div>
+        </div>
+      </section>
 
-function saveState() {
-    if (history.length >= MAX_HISTORY) {
-        history.shift();
-    }
-    history.push(ctx.getImageData(0, 0, canvas.width, canvas.height));
-}
+      <section class="gallery-section" aria-labelledby="gallery-heading">
+        <h3 id="gallery-heading">Gallery</h3>
+        <p class="gallery-caption">Videos stay on this device in this browsing session.</p>
+        <div id="gallery-grid" class="gallery-grid"></div>
+        <p id="gallery-empty" class="gallery-empty">No wishes captured yet.</p>
+      </section>
 
-function undoLast() {
-    if (history.length > 0) {
-        const state = history.pop();
-        ctx.putImageData(state, 0, 0);
-    }
-}
+      <dialog id="dialog-upload" class="modal" aria-labelledby="dialog-upload-title">
+        <div class="modal-inner">
+          <h4 id="dialog-upload-title">Preparing clip</h4>
+          <p class="modal-text">Simulation only.</p>
+          <div class="progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="progress-bar">
+            <div class="progress-fill" id="progress-fill"></div>
+          </div>
+          <p class="progress-label" id="progress-label">0 percent</p>
+        </div>
+      </dialog>
+    </div>
 
-function clearCanvas() {
-    saveState();
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-}
-
-function toggleNeon() {
-    neon = !neon;
-}
-
-// ============================================
-// MEDIAPIPE HANDS
-// ============================================
-const hands = new Hands({
-    locateFile: file => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
-});
-
-hands.setOptions({
-    maxNumHands: 1,
-    modelComplexity: 1,
-    minDetectionConfidence: 0.75,
-    minTrackingConfidence: 0.75
-});
-
-// Переменная для отслеживания начала штриха
-let strokeStarted = false;
-
-hands.onResults(results => {
-    // Рука не найдена
-    if (!results.multiHandLandmarks || results.multiHandLandmarks.length === 0) {
-        lastX = null;
-        lastY = null;
-        smoothX = null;
-        smoothY = null;
-        isDrawing = false;
-        strokeStarted = false;
-        
-        statusEl.textContent = "✋ Ожидание руки...";
-        statusEl.classList.remove('drawing');
-        drawCursor.classList.remove('visible', 'active');
-        pinchText.textContent = "Расстояние: ---";
-        pinchBarFill.style.width = "0%";
-        return;
-    }
-
-    const landmarks = results.multiHandLandmarks[0];
-
-    // ============================================
-    // КЛЮЧЕВОЕ ИСПРАВЛЕНИЕ:
-    // Landmark 4 = кончик БОЛЬШОГО пальца (thumb tip)
-    // Landmark 8 = кончик УКАЗАТЕЛЬНОГО пальца (index tip)
-    // ============================================
-    const thumbTip = landmarks[4];   // 👍 Большой палец
-    const indexTip = landmarks[8];   // 👆 Указательный палец
-
-    // ============================================
-    // КЛЮЧЕВОЕ ИСПРАВЛЕНИЕ ИНВЕРСИИ:
-    // Видео зеркалировано (scaleX(-1)), поэтому
-    // координаты X тоже нужно зеркалировать: (1 - x)
-    // ============================================
-    
-    // Точка рисования = середина между большим и указательным пальцем
-    const midX = (thumbTip.x + indexTip.x) / 2;
-    const midY = (thumbTip.y + indexTip.y) / 2;
-
-    // ЗЕРКАЛИРУЕМ X чтобы совпадало с видео
-    const rawX = (1 - midX) * canvas.width;
-    const rawY = midY * canvas.height;
-
-    // Сглаживание координат для плавности линий
-    if (smoothX === null) {
-        smoothX = rawX;
-        smoothY = rawY;
-    } else {
-        smoothX = smoothX + (rawX - smoothX) * (1 - SMOOTHING);
-        smoothY = smoothY + (rawY - smoothY) * (1 - SMOOTHING);
-    }
-
-    const x = smoothX;
-    const y = smoothY;
-
-    // Расстояние между большим и указательным пальцем (в пикселях)
-    const distance = Math.sqrt(
-        Math.pow((thumbTip.x - indexTip.x) * canvas.width, 2) +
-        Math.pow((thumbTip.y - indexTip.y) * canvas.height, 2)
-    );
-
-    // Обновляем курсор (показываем где будет рисоваться)
-    drawCursor.style.left = x + 'px';
-    drawCursor.style.top = y + 'px';
-    drawCursor.classList.add('visible');
-
-    // Обновляем индикатор расстояния
-    const pinchPercent = Math.max(0, Math.min(100, (1 - distance / (PINCH_THRESHOLD * 2)) * 100));
-    pinchBarFill.style.width = pinchPercent + '%';
-    pinchText.textContent = `Расстояние: ${Math.round(distance)}px`;
-
-    if (distance < PINCH_THRESHOLD) {
-        pinchBarFill.style.background = '#22c55e';
-    } else if (distance < PINCH_THRESHOLD * 1.5) {
-        pinchBarFill.style.background = '#eab308';
-    } else {
-        pinchBarFill.style.background = '#3b82f6';
-    }
-
-    // ============================================
-    // РИСОВАНИЕ: пальцы сжаты
-    // ============================================
-    const shouldDraw = distance < PINCH_THRESHOLD;
-
-    if (shouldDraw) {
-        // Начало нового штриха — сохраняем состояние для отмены
-        if (!strokeStarted) {
-            saveState();
-            strokeStarted = true;
-        }
-
-        isDrawing = true;
-        statusEl.textContent = "✏️ Рисование...";
-        statusEl.classList.add('drawing');
-        drawCursor.classList.add('active');
-
-        const color = document.getElementById('color').value;
-        const size = parseInt(document.getElementById('size').value);
-
-        // Обновляем размер курсора под размер кисти
-        drawCursor.style.width = size + 8 + 'px';
-        drawCursor.style.height = size + 8 + 'px';
-
-        ctx.strokeStyle = color;
-        ctx.lineWidth = size;
-        ctx.lineCap = "round";
-        ctx.lineJoin = "round";
-
-        if (neon) {
-            ctx.shadowBlur = 25;
-            ctx.shadowColor = color;
-        } else {
-            ctx.shadowBlur = 0;
-            ctx.shadowColor = 'transparent';
-        }
-
-        if (lastX !== null && lastY !== null) {
-            // Рисуем линию от предыдущей точки к текущей
-            ctx.beginPath();
-            ctx.moveTo(lastX, lastY);
-            ctx.lineTo(x, y);
-            ctx.stroke();
-        } else {
-            // Первая точка — рисуем точку
-            ctx.beginPath();
-            ctx.arc(x, y, size / 2, 0, Math.PI * 2);
-            ctx.fillStyle = color;
-            ctx.fill();
-        }
-
-        lastX = x;
-        lastY = y;
-
-    } else {
-        // ============================================
-        // НЕ РИСУЕМ: пальцы разжаты
-        // ============================================
-        if (isDrawing) {
-            isDrawing = false;
-            strokeStarted = false;
-            statusEl.textContent = "👌 Рука обнаружена — сожми пальцы";
-            statusEl.classList.remove('drawing');
-        }
-        
-        drawCursor.classList.remove('active');
-        
-        // Сбрасываем последнюю точку чтобы при новом щипке
-        // не было линии от старой позиции
-        lastX = null;
-        lastY = null;
-    }
-});
-
-// ============================================
-// ЗАПУСК КАМЕРЫ
-// ============================================
-navigator.mediaDevices.getUserMedia({ 
-    video: {
-        width: { ideal: 1280 },
-        height: { ideal: 720 },
-        facingMode: 'user'
-    } 
-})
-.then(stream => {
-    video.srcObject = stream;
-    
-    video.onloadedmetadata = () => {
-        video.play();
-        
-        const camera = new Camera(video, {
-            onFrame: async () => {
-                try {
-                    await hands.send({ image: video });
-                } catch(e) {
-                    // Игнорируем ошибки кадров
-                }
-            },
-            width: 1280,
-            height: 720
-        });
-        
-        camera.start();
-        statusEl.textContent = "✅ Камера запущена — покажи руку";
-    };
-})
-.catch(err => {
-    console.error("Ошибка камеры:", err);
-    statusEl.textContent = "❌ Ошибка камеры!";
-    statusEl.style.background = "rgba(239, 68, 68, 0.3)";
-    statusEl.style.border = "2px solid #ef4444";
-    
-    alert(
-        "⚠️ Не удалось получить доступ к камере.\n\n" +
-        "Проверь:\n" +
-        "1. Разрешение на камеру в браузере\n" +
-        "2. Открыт ли файл через HTTPS или localhost\n" +
-        "3. Камера не используется другим приложением"
-    );
-});
-</script>
-
-</body>
+    <script type="module" src="js/main.js"></script>
+  </body>
 </html>
